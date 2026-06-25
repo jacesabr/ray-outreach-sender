@@ -1,0 +1,21 @@
+# Render Cron Job: sends the next pending contact every 10 minutes,
+# capped at 100/day (enforced via a count in Neon). State lives in Neon,
+# so it's resumable and never double-sends.
+services:
+  - type: cron
+    name: ray-outreach-sender
+    runtime: python
+    schedule: "*/10 * * * *"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python cloud_sender.py --go"
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # set as a secret in the Render dashboard
+      - key: GMAIL_ADDRESS
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: DAILY_CAP
+        value: "100"
+      - key: BATCH
+        value: "1"
