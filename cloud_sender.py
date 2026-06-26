@@ -124,8 +124,12 @@ def main():
                 print("daily cap reached — exiting.")
                 break
             with conn.cursor() as cur:
+                # Prioritise most-recently-active profiles first: a recent
+                # Slack `updated` timestamp strongly implies a live mailbox
+                # (and a more engaged person). Falls back to relevance rank.
                 cur.execute("SELECT id, email, first_name FROM contacts "
-                            "WHERE status='pending' ORDER BY rank "
+                            "WHERE status='pending' "
+                            "ORDER BY updated DESC NULLS LAST, rank ASC "
                             "LIMIT 1 FOR UPDATE SKIP LOCKED")
                 row = cur.fetchone()
                 if not row:
