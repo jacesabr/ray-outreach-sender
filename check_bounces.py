@@ -55,8 +55,8 @@ print(f"found {len(bounced)} bounced address(es) in the inbox")
 with psycopg.connect(DSN) as conn, conn.cursor() as cur:
     marked = 0
     for a in bounced:
-        cur.execute("UPDATE contacts SET status='bounced', detail='hard bounce (550)' "
-                    "WHERE lower(email)=%s AND status <> 'bounced'", (a,))
+        cur.execute("UPDATE contacts SET status='bounced', bounced=true, "
+                    "detail='hard bounce (550)' WHERE lower(email)=%s AND status <> 'bounced'", (a,))
         marked += cur.rowcount
     conn.commit()
     cur.execute("SELECT count(*) FILTER (WHERE status='sent'), "
