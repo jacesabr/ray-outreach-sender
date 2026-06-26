@@ -23,21 +23,25 @@ with psycopg.connect(DSN) as conn, conn.cursor() as cur:
           count(*) FILTER (WHERE status='sent' AND sent_at >= now() - interval '24 hours'),
           count(*) FILTER (WHERE status='pending'),
           count(*) FILTER (WHERE status='failed'),
+          count(*) FILTER (WHERE status='bounced'),
           count(*)
         FROM contacts
     """)
-    sent_total, sent_24h, pending, failed, total = cur.fetchone()
+    sent_total, sent_24h, pending, failed, bounced, total = cur.fetchone()
 
 days_left = (pending + CAP - 1) // CAP if CAP else 0
 pct = round(100 * sent_total / total, 1) if total else 0
+attempted = sent_total + bounced
+bounce_rate = round(100 * bounced / attempted, 1) if attempted else 0
 body = f"""Ray outreach - daily status  ({datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC})
 
 Reached in last 24h:  {sent_24h}
 Reached total:        {sent_total} of {total}  ({pct}%)
+Bounced (dead addr):  {bounced}  ({bounce_rate}% bounce rate)
 Still pending:        {pending}
-Failed:               {failed}
+Failed (other):       {failed}
 
-At ~{CAP}/day, about {days_left} days left.
+At ~{CAP}/day, about {days_left} days left. Sending most-recently-active first.
 The sender is running. To pause it, suspend the Render cron 'ray-outreach-sender'.
 """
 
